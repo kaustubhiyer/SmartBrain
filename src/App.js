@@ -52,8 +52,9 @@ const particleOptions = {
   },
   detectRetina: true,
 };
+const API_KEY = process.env.REACT_APP_API_KEY;
 const app = new Clarifai.App({
-  apiKey: "a4d40c68c1674182ad87262759ed5a06",
+  apiKey: API_KEY,
 });
 
 function App() {
