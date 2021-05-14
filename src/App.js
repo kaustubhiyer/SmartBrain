@@ -7,6 +7,8 @@ import FaceRecognition from "./components/FaceRecognition/FaceRecognition";
 import Particles from "react-tsparticles";
 import { useState } from "react";
 import Clarifai from "clarifai";
+import SignIn from "./components/SignIn/SignIn";
+import Register from "./components/SignIn/Register";
 
 const particleOptions = {
   fpsLimit: 60,
@@ -60,33 +62,69 @@ const app = new Clarifai.App({
 function App() {
   const [input, setInput] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [box, setBox] = useState({});
+  const [route, setRoute] = useState("signin");
+  const [isSignedIn, setIsSingedIn] = useState(false);
 
   const onInputChange = (e) => {
     setInput(e.target.value);
-    console.log(e.target.value);
+  };
+
+  const calculateFaceLocation = (res) => {
+    console.log(res);
+    const boundingBox = res.outputs[0].data.regions[0].region_info.bounding_box;
+    const image = document.getElementById("inputImage");
+    const width = Number(image.width);
+    const height = Number(image.height);
+    return {
+      leftCol: boundingBox.left_col * width,
+      topRow: boundingBox.top_row * height,
+      rightCol: width - boundingBox.right_col * width,
+      bottomRow: height - boundingBox.bottom_row * height,
+    };
+  };
+
+  const displayFaceBox = (bBox) => {
+    console.log(bBox);
+    setBox(bBox);
   };
 
   const onSubmit = () => {
     setImageUrl(input);
-    console.log(imageUrl);
     app.models.predict(Clarifai.FACE_DETECT_MODEL, input).then(
       function (response) {
-        console.log(
-          response.outputs[0].data.regions[0].region_info.bounding_box
-        );
+        const bBox = calculateFaceLocation(response);
+        displayFaceBox(bBox);
       },
       function (err) {}
     );
   };
 
+  const onRouteChange = (newRoute) => {
+    if (newRoute === "signin") {
+      setIsSingedIn(false);
+    } else if (newRoute === "home") {
+      setIsSingedIn(true);
+    }
+    setRoute(newRoute);
+  };
+
   return (
     <div className="App">
       <Particles id="tsparticles" options={particleOptions} />
-      <Navigation />
+      <Navigation onRouteChange={onRouteChange} isSignedIn={isSignedIn} />
       <Logo />
-      <Rank />
-      <ImageLinkForm onInputChange={onInputChange} onSubmit={onSubmit} />
-      <FaceRecognition imageUrl={imageUrl} />
+      {route === "home" ? (
+        <div>
+          <Rank />
+          <ImageLinkForm onInputChange={onInputChange} onSubmit={onSubmit} />
+          <FaceRecognition box={box} imageUrl={imageUrl} />
+        </div>
+      ) : route === "signin" ? (
+        <SignIn onRouteChange={onRouteChange} />
+      ) : (
+        <Register onRouteChange={onRouteChange} />
+      )}
     </div>
   );
 }
